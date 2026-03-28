@@ -1,0 +1,82 @@
+# ============================================================================
+# Fluent Bit → VictoriaLogs v3.0
+# Host: {{ .Hostname }} | Job: {{ .Job }} | OS: {{ .OSID }}/{{ .OSCodename }}
+# Services: {{ .Services }}
+# Generated: {{ .GeneratedAt }}
+# ============================================================================
+
+[SERVICE]
+    Flush                  {{ .FlushSec }}
+    Grace                  30
+    Log_Level              warn
+    Daemon                 off
+    Parsers_File           parsers.conf
+    Parsers_File           parsers.d/parsers-custom.conf
+    scheduler.base         3
+    scheduler.cap          120
+    storage.path           /var/lib/fluent-bit/
+    storage.sync           normal
+    storage.checksum       off
+    storage.max_chunks_up  256
+    HTTP_Server            On
+    HTTP_Listen            127.0.0.1
+    HTTP_Port              2020
+{{ if .JournalInput }}
+[INPUT]
+    Name              systemd
+    Tag               host
+    Read_From_Tail    on
+    Strip_Underscores on
+    storage.type      filesystem
+    Mem_Buf_Limit     20MB
+{{ end }}
+{{ range .FileInputs }}
+[INPUT]
+    Name              tail
+    Tag               {{ .Tag }}
+    Path              {{ .Path }}
+    Read_from_Head    false
+    Refresh_Interval  10
+    Rotate_Wait       30
+    Skip_Long_Lines   On
+    Buffer_Max_Size   256k
+    Mem_Buf_Limit     10MB
+    DB                /var/lib/fluent-bit/tail_{{ .Tag }}.db
+    storage.type      filesystem
+{{ if .Parser }}    Parser            {{ .Parser }}{{ end }}
+{{ end }}
+
+[FILTER]
+    Name                   lua
+    Match                  *
+    Script                 /etc/fluent-bit/enrich.lua
+    Call                   enrich
+
+[OUTPUT]
+    Name                   http
+    Match                  *
+    Host                   {{ .VLHost }}
+    Port                   {{ .VLPort }}
+    URI                    /insert/jsonline?_stream_fields=hostname,app,level&_msg_field=_msg&_time_field=_time
+    Format                 json_lines
+    json_date_format       iso8601
+    json_date_key          _time
+{{ if eq .TLS.Mode "mtls" }}    tls                        On
+    tls.verify                 On
+    tls.ca_file                {{ .TLS.CA }}
+    tls.crt_file               {{ .TLS.Cert }}
+    tls.key_file               {{ .TLS.Key }}
+{{ else if eq .TLS.Mode "cf-access" }}    tls                        On
+    tls.verify                 On
+    Header CF-Access-Client-Id     {{ .CFID }}
+    Header CF-Access-Client-Secret {{ .CFSecret }}
+{{ end }}
+{{ if .Gzip }}    compress                   gzip{{ end }}
+    Retry_Limit            false
+    net.keepalive              on
+    net.keepalive_idle_timeout 30
+    net.keepalive_max_recycle  2000
+    net.connect_timeout        10
+    net.dns.mode               TCP
+    storage.total_limit_size   {{ .BufferSize }}
+    Workers                    1

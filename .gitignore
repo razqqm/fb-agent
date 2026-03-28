@@ -1,0 +1,18 @@
+# Binaries
+fb-agent
+fb-agent-*
+*.exe
+
+# Test artifacts
+/tmp/
+verify-report.json
+
+# Reference files (not part of the project)
+reference-*.sh
+reference-*.lua
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

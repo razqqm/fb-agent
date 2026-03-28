@@ -1,0 +1,20 @@
+[Unit]
+Description=Fluent Bit Infrastructure Agent
+After=network-online.target fluent-bit.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart={{ .ExecPath }} daemon
+Restart=always
+RestartSec=30
+WatchdogSec=300
+LimitNOFILE=65536
+OOMScoreAdjust=-500
+Environment=VL_HOST={{ .VLHost }}
+Environment=VL_PORT={{ .VLPort }}
+{{ range .Env }}Environment={{ . }}
+{{ end }}
+
+[Install]
+WantedBy=multi-user.target
