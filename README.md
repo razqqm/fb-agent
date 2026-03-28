@@ -1,5 +1,14 @@
 # fb-agent
 
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Linux](https://img.shields.io/badge/OS-Linux-FCC624?style=flat&logo=linux&logoColor=black)](https://kernel.org)
+[![Static Binary](https://img.shields.io/badge/Binary-Static_(CGO__off)-success)](https://github.com/razqqm/fb-agent)
+[![Fluent Bit](https://img.shields.io/badge/Fluent_Bit-3.x-49BDA5?style=flat&logo=fluentbit&logoColor=white)](https://fluentbit.io/)
+[![VictoriaLogs](https://img.shields.io/badge/VictoriaLogs-compatible-6C2DC7?style=flat)](https://docs.victoriametrics.com/victorialogs/)
+[![Arch: amd64](https://img.shields.io/badge/arch-amd64-blue)](https://github.com/razqqm/fb-agent)
+[![Arch: arm64](https://img.shields.io/badge/arch-arm64-blue)](https://github.com/razqqm/fb-agent)
+
 Single-binary infrastructure agent for [Fluent Bit](https://fluentbit.io/) lifecycle management. Installs, configures, monitors, and registers hosts — all from one static Go binary.
 
 **[Русская версия ниже](#ru)**
@@ -151,6 +160,15 @@ MIT
 <a id="ru"></a>
 
 # fb-agent (Русский)
+
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
+[![Лицензия: MIT](https://img.shields.io/badge/Лицензия-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Linux](https://img.shields.io/badge/ОС-Linux-FCC624?style=flat&logo=linux&logoColor=black)](https://kernel.org)
+[![Статический бинарник](https://img.shields.io/badge/Бинарник-Статический_(CGO__off)-success)](https://github.com/razqqm/fb-agent)
+[![Fluent Bit](https://img.shields.io/badge/Fluent_Bit-3.x-49BDA5?style=flat&logo=fluentbit&logoColor=white)](https://fluentbit.io/)
+[![VictoriaLogs](https://img.shields.io/badge/VictoriaLogs-совместим-6C2DC7?style=flat)](https://docs.victoriametrics.com/victorialogs/)
+[![Арх: amd64](https://img.shields.io/badge/арх-amd64-blue)](https://github.com/razqqm/fb-agent)
+[![Арх: arm64](https://img.shields.io/badge/арх-arm64-blue)](https://github.com/razqqm/fb-agent)
 
 Однофайловый инфраструктурный агент для управления жизненным циклом [Fluent Bit](https://fluentbit.io/). Устанавливает, настраивает, мониторит и регистрирует хосты — всё в одном статическом Go-бинарнике.
 
