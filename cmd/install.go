@@ -161,9 +161,12 @@ func Install() {
 	tlsCfg := config.TLSConfig{Mode: "off"}
 
 	// Check if certs already exist
-	if fileExists("/etc/fluent-bit/certs/ca.crt") &&
+	certsExist := fileExists("/etc/fluent-bit/certs/ca.crt") &&
 		fileExists("/etc/fluent-bit/certs/client.crt") &&
-		fileExists("/etc/fluent-bit/certs/client.key") {
+		fileExists("/etc/fluent-bit/certs/client.key")
+
+	switch {
+	case certsExist:
 		tlsCfg = config.TLSConfig{
 			CA:   "/etc/fluent-bit/certs/ca.crt",
 			Cert: "/etc/fluent-bit/certs/client.crt",
@@ -171,7 +174,7 @@ func Install() {
 			Mode: "mtls",
 		}
 		ui.OK("mTLS: existing certificates found")
-	} else if os.Getenv("FB_SKIP_MTLS") != "1" && vlPort != 443 {
+	case os.Getenv("FB_SKIP_MTLS") != "1" && vlPort != 443:
 		ui.Info("mTLS: requesting certificate...")
 		if err := network.EnrollCert(hostname, vlHost, vlPort, cfID, cfSecret); err != nil {
 			ui.Warn("mTLS: enrollment failed (continuing without): " + err.Error())
@@ -184,7 +187,7 @@ func Install() {
 			}
 			ui.OK("mTLS: certificate enrolled")
 		}
-	} else if vlPort == 443 {
+	case vlPort == 443:
 		ui.OK("TLS: CF Access (Bearer token via service token)")
 		tlsCfg = config.TLSConfig{Mode: "cf-access"}
 	}

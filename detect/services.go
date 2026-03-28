@@ -228,7 +228,7 @@ func DetectServicesDetailed() []ServiceInfo {
 		{"haproxy", "HAProxy", []string{"haproxy", "-v"}},
 		{"iobroker", "ioBroker", nil},
 		{"zigbee2mqtt", "Zigbee2MQTT", nil},
-		{"mosquitto", "Mosquitto", []string{"mosquitto", "-h"}},
+		{"mosquitto", "Mosquitto", []string{"mosquitto", "-h"}}, //nolint:misspell // Eclipse Mosquitto is the correct name
 	}
 
 	seen := make(map[string]bool)
