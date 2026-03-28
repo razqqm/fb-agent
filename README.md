@@ -1,0 +1,262 @@
+# fb-agent
+
+Single-binary infrastructure agent for [Fluent Bit](https://fluentbit.io/) lifecycle management. Installs, configures, monitors, and registers hosts — all from one static Go binary.
+
+**[Русская версия ниже](#ru)**
+
+---
+
+## Features
+
+- **Single binary** — no runtime dependencies, no interpreters, one file to deploy
+- **Auto-detection** — OS, environment (LXC/Docker/VM/bare-metal), and services with versions
+- **Config generation** — Fluent Bit configs from templates with detected services as inputs
+- **Service discovery** — SSH, Nginx, PostgreSQL, Redis, Kerio Connect, Rocket.Chat, Fail2Ban, Docker, HAProxy, and 15+ more
+- **Host registration** — collects fingerprint (IPs, ports, hardware, services) and sends to [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/)
+- **mTLS enrollment** — automatic certificate generation and signing via pure Go crypto
+- **Daemon mode** — replaces 4 separate systemd timers with one service (watchdog + registration + cert renewal)
+- **Connectivity monitoring** — state machine with configurable offline alerting (default: 6 hours)
+- **Cross-platform** — builds for `linux/amd64` and `linux/arm64`
+
+## Quick Start
+
+```bash
+# Build
+make build
+
+# Or manually
+CGO_ENABLED=0 go build -o fb-agent .
+
+# Install Fluent Bit on a host (requires root)
+sudo ./fb-agent install
+
+# Check status
+./fb-agent status
+
+# Register host in VictoriaLogs
+sudo ./fb-agent register
+
+# Run as daemon (replaces cron/timers)
+sudo ./fb-agent daemon
+```
+
+## Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `install` | Install Fluent Bit, detect services, generate config, start |
+| `register` | Collect host fingerprint, send to VictoriaLogs |
+| `watchdog` | One-shot connectivity and health check |
+| `daemon` | Long-running mode: watchdog + register + cert renewal |
+| `uninstall` | Stop and remove Fluent Bit (add `--purge` for full cleanup) |
+| `status` | Show agent health, connectivity, certificates |
+| `version` | Print version and build info |
+
+## Configuration
+
+All configuration is via environment variables — no config files for the agent itself.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VL_HOST` | `localhost` | VictoriaLogs host |
+| `VL_PORT` | `443` | VictoriaLogs port (443=HTTPS, 9428=HTTP, 9429=mTLS) |
+| `FB_HOSTNAME` | OS hostname | Override hostname |
+| `FB_JOB` | auto-detect | Environment label: `lxc`, `remote`, `docker`, `vm` |
+| `FB_LOG_PATHS` | — | Extra log files (colon-separated) |
+| `FB_EXTRA_TAGS` | — | Tags for extra log files (colon-separated) |
+| `FB_BUFFER_SIZE` | auto by RAM | Filesystem buffer size |
+| `FB_GZIP` | auto | Compression: `on`/`off` (auto: on for remote) |
+| `FB_FLUSH` | `5` | Flush interval in seconds |
+| `FB_SKIP_DETECT` | — | Set to `1` to skip service auto-detection |
+| `FB_SKIP_MTLS` | — | Set to `1` to skip mTLS enrollment |
+| `CF_CLIENT_ID` | — | Cloudflare Access service token ID |
+| `CF_CLIENT_SECRET` | — | Cloudflare Access service token secret |
+
+## How It Works
+
+### Install Flow
+
+1. Detect OS (Debian, Ubuntu, Alpine, RHEL, etc.)
+2. Add Fluent Bit package repository (with codename fallbacks: trixie→bookworm, oracular→noble)
+3. Install Fluent Bit via package manager
+4. Detect environment (LXC, Docker, VM, bare-metal)
+5. Auto-discover running services and their log paths
+6. Generate `fluent-bit.conf` from embedded templates
+7. Deploy embedded `enrich.lua` and custom parsers
+8. Optionally enroll mTLS certificates
+9. Configure systemd with hardened unit (LimitNOFILE, ProtectSystem, OOMScoreAdjust)
+10. Start Fluent Bit and the fb-agent daemon
+
+### Daemon Mode
+
+Replaces separate systemd timers with a single service:
+
+- **Every 5 min** — watchdog: check Fluent Bit health endpoint + output retries
+- **Every 24h** — register: update host fingerprint in VictoriaLogs
+- **Every 7d** — certificate renewal check (re-enroll if <30 days remaining)
+- **Alert** — if offline >6 hours, write alert file + syslog
+
+### Registration Data
+
+The `register` command collects and sends:
+
+```json
+{
+  "host_id": "machine-id-based fingerprint",
+  "hostname": "myhost",
+  "internal_ip": "10.0.1.3",
+  "external_ip": "203.0.113.1",
+  "os": "Debian GNU/Linux 13 (trixie)",
+  "environment": "lxc",
+  "cpu": "4x AMD EPYC",
+  "ram_mb": 4096,
+  "open_ports": "22,80,443,5432",
+  "services": [{"Name": "SSH", "Status": "active", "Version": "OpenSSH_10.0"}]
+}
+```
+
+## Building
+
+```bash
+# Both architectures
+make build
+
+# Single architecture
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o fb-agent .
+
+# With version info
+go build -ldflags "-s -w -X main.version=1.0.0 -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o fb-agent .
+```
+
+## Verification
+
+```bash
+python3 verify.py
+```
+
+Runs 52 automated checks: build, linting (golangci-lint), spell check, code quality, spec compliance, bash parity, and binary sanity.
+
+## Requirements
+
+- **Build**: Go 1.21+
+- **Runtime**: Linux (systemd-based), root for install/register/daemon
+- **Target**: Fluent Bit 3.x, VictoriaLogs
+
+## License
+
+MIT
+
+---
+
+<a id="ru"></a>
+
+# fb-agent (Русский)
+
+Однофайловый инфраструктурный агент для управления жизненным циклом [Fluent Bit](https://fluentbit.io/). Устанавливает, настраивает, мониторит и регистрирует хосты — всё в одном статическом Go-бинарнике.
+
+## Возможности
+
+- **Один бинарник** — без зависимостей, без интерпретаторов, один файл для деплоя
+- **Автодетекция** — ОС, окружение (LXC/Docker/VM/bare-metal) и сервисы с версиями
+- **Генерация конфигов** — конфиги Fluent Bit из шаблонов с обнаруженными сервисами
+- **Обнаружение сервисов** — SSH, Nginx, PostgreSQL, Redis, Kerio Connect, Rocket.Chat, Fail2Ban, Docker, HAProxy и 15+ других
+- **Регистрация хостов** — собирает fingerprint (IP, порты, железо, сервисы) и отправляет в [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/)
+- **mTLS** — автоматическая генерация и подпись сертификатов через Go crypto
+- **Режим демона** — заменяет 4 отдельных systemd таймера одним сервисом (watchdog + регистрация + обновление сертификатов)
+- **Мониторинг связи** — state machine с алертом при потере связи (по умолчанию: 6 часов)
+- **Кросс-платформа** — сборка для `linux/amd64` и `linux/arm64`
+
+## Быстрый старт
+
+```bash
+# Сборка
+make build
+
+# Установить Fluent Bit на хост (нужен root)
+sudo ./fb-agent install
+
+# Проверить статус
+./fb-agent status
+
+# Зарегистрировать хост в VictoriaLogs
+sudo ./fb-agent register
+
+# Запустить как демон
+sudo ./fb-agent daemon
+```
+
+## Команды
+
+| Команда | Описание |
+|---------|----------|
+| `install` | Установить Fluent Bit, обнаружить сервисы, сгенерировать конфиг, запустить |
+| `register` | Собрать fingerprint хоста, отправить в VictoriaLogs |
+| `watchdog` | Разовая проверка связи и здоровья |
+| `daemon` | Долгоживущий режим: watchdog + register + обновление сертификатов |
+| `uninstall` | Остановить и удалить Fluent Bit (`--purge` для полной очистки) |
+| `status` | Показать здоровье агента, связь, сертификаты |
+| `version` | Версия и информация о сборке |
+
+## Конфигурация
+
+Вся конфигурация через переменные окружения — никаких конфиг-файлов для самого агента.
+
+| Переменная | По умолчанию | Описание |
+|------------|-------------|----------|
+| `VL_HOST` | `localhost` | Хост VictoriaLogs |
+| `VL_PORT` | `443` | Порт VL (443=HTTPS, 9428=HTTP, 9429=mTLS) |
+| `FB_HOSTNAME` | hostname ОС | Переопределить hostname |
+| `FB_JOB` | автоопределение | Метка окружения: `lxc`, `remote`, `docker`, `vm` |
+| `FB_LOG_PATHS` | — | Доп. лог-файлы (через двоеточие) |
+| `FB_BUFFER_SIZE` | авто по RAM | Размер файлового буфера |
+| `FB_GZIP` | авто | Сжатие: `on`/`off` (авто: on для remote) |
+| `FB_SKIP_DETECT` | — | `1` = пропустить автодетекцию сервисов |
+| `FB_SKIP_MTLS` | — | `1` = пропустить mTLS |
+
+## Как это работает
+
+### Процесс установки
+
+1. Определяет ОС (Debian, Ubuntu, Alpine, RHEL и др.)
+2. Добавляет репозиторий Fluent Bit (с фолбэками: trixie→bookworm, oracular→noble)
+3. Устанавливает Fluent Bit через пакетный менеджер
+4. Определяет окружение (LXC, Docker, VM, bare-metal)
+5. Обнаруживает запущенные сервисы и пути к их логам
+6. Генерирует `fluent-bit.conf` из встроенных шаблонов
+7. Деплоит встроенные `enrich.lua` и кастомные парсеры
+8. Опционально регистрирует mTLS сертификаты
+9. Настраивает systemd с hardened unit (LimitNOFILE, ProtectSystem, OOMScoreAdjust)
+10. Запускает Fluent Bit и демон fb-agent
+
+### Режим демона
+
+Заменяет отдельные systemd таймеры одним сервисом:
+
+- **Каждые 5 мин** — watchdog: проверка health endpoint + output retries
+- **Каждые 24ч** — register: обновление fingerprint в VictoriaLogs
+- **Каждые 7 дней** — проверка сертификатов (перевыпуск если <30 дней)
+- **Алерт** — если offline >6 часов → alert file + syslog
+
+## Сборка
+
+```bash
+make build
+```
+
+## Верификация
+
+```bash
+python3 verify.py
+```
+
+52 автоматических проверки: сборка, линтинг, орфография, качество кода, соответствие спецификации, паритет с bash, тест бинарника.
+
+## Требования
+
+- **Сборка**: Go 1.21+
+- **Runtime**: Linux (systemd), root для install/register/daemon
+- **Цель**: Fluent Bit 3.x, VictoriaLogs
+
+## Лицензия
+
+MIT

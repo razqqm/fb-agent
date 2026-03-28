@@ -10,7 +10,7 @@ import (
 
 // Watchdog performs a one-shot watchdog health check.
 func Watchdog() {
-	vlHost := envOr("VL_HOST", "logs.ilia.ae")
+	vlHost := envOr("VL_HOST", "localhost")
 	vlPortStr := envOr("VL_PORT", "443")
 	vlPort := mustParsePort(vlPortStr)
 

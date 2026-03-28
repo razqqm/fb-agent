@@ -25,7 +25,7 @@ import (
 func Daemon() {
 	slog.Info("fb-agent daemon starting")
 
-	vlHost := envOr("VL_HOST", "logs.ilia.ae")
+	vlHost := envOr("VL_HOST", "localhost")
 	vlPortStr := envOr("VL_PORT", "443")
 	vlPort := mustParsePort(vlPortStr)
 	cfID := envOr("CF_CLIENT_ID", "")

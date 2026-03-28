@@ -73,7 +73,7 @@ func printUsage() {
 	envVars := [][2]string{
 		{"FB_HOSTNAME", "Override hostname (default: os.Hostname)"},
 		{"FB_JOB", "Environment label: lxc|remote|docker|vm"},
-		{"VL_HOST", "VictoriaLogs host (default: logs.ilia.ae)"},
+		{"VL_HOST", "VictoriaLogs host (default: localhost)"},
 		{"VL_PORT", "VictoriaLogs port (default: 443)"},
 		{"CF_CLIENT_ID", "Cloudflare Access client ID"},
 		{"CF_CLIENT_SECRET", "Cloudflare Access client secret"},
